@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}{{ title }} - EhantiPOS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Select which modules this role can access{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'role_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Role Name -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Role Name *</label>
+                <input type="text" name="name" value="{{ role.name|default:'' }}" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    placeholder="e.g. Manager, Waiter, Chef, Cashier">
+            </div>
+
+            <!-- Permissions -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">{% t "Permissions" %}</label>
+                <p class="text-xs text-gray-400 mb-4">Check the modules this role can access. Unchecked modules will be hidden from staff with this role.</p>
+
+                <div class="space-y-2">
+                    {% for perm_code, perm_name in available_permissions %}
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                        <input type="checkbox" name="permissions" value="{{ perm_code }}"
+                            {% if perm_code in selected_permissions %}checked{% endif %}
+                            class="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer">
+                        <div class="flex-1">
+                            <span class="text-sm font-medium text-gray-800">{{ perm_name }}</span>
+                            <p class="text-xs text-gray-400">
+                                {% if perm_code == 'dashboard' %}View dashboard with stats, revenue, and active orders
+                                {% elif perm_code == 'orders' %}Create, view, edit orders and process payments
+                                {% elif perm_code == 'menu' %}Manage menu items and categories
+                                {% elif perm_code == 'tables' %}Manage tables and view table status
+                                {% elif perm_code == 'kitchen' %}View kitchen display and update order status
+                                {% elif perm_code == 'inventory' %}Manage ingredients and stock movements
+                                {% elif perm_code == 'expenses' %}Record and view expenses
+                                {% elif perm_code == 'staff' %}Manage staff members
+                                {% elif perm_code == 'roles' %}Create and edit roles and permissions
+                                {% elif perm_code == 'reports' %}View sales reports and daily summaries
+                                {% elif perm_code == 'settings' %}Configure restaurant settings and payment methods
+                                {% endif %}
+                            </p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick Select -->
+                <div class="flex gap-2 mt-3">
+                    <button type="button" onclick="document.querySelectorAll('input[name=permissions]').forEach(c => c.checked = true)" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">{% t "Select All" %}</button>
+                    <button type="button" onclick="document.querySelectorAll('input[name=permissions]').forEach(c => c.checked = false)" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">{% t "Deselect All" %}</button>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-100 flex gap-3">
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Save Role" %}</button>
+                <a href="{% url 'role_list' %}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

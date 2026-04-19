@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}{{ title }} - EhantiPOS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Record an expense and deduct from payment method{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'expense_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-5">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="px-4 py-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">
+                Please correct the errors below.
+            </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Expense Title *</label>
+                {{ form.title }}
+                {% if form.title.errors %}<p class="text-xs text-red-600 mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<p class="text-xs text-red-600 mt-1">{{ form.amount.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    {{ form.date }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Category" %}</label>
+                {{ form.category }}
+                <p class="text-xs text-gray-400 mt-1">
+                    <a href="{% url 'expense_category_list' %}" class="text-indigo-600 hover:text-indigo-800">{% t "Manage categories" %}</a>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pay From (Method) *</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<p class="text-xs text-red-600 mt-1">{{ form.payment_method.errors.0 }}</p>{% endif %}
+                    <p class="text-xs text-gray-400 mt-1">Amount will be deducted from this balance</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Paid By (Staff) *</label>
+                    {{ form.paid_by }}
+                    {% if form.paid_by.errors %}<p class="text-xs text-red-600 mt-1">{{ form.paid_by.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                {{ form.notes }}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Receipt Photo (optional)</label>
+                {{ form.receipt_image }}
+            </div>
+
+            <div class="pt-4 border-t border-gray-100 flex gap-3">
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Save Expense" %}</button>
+                <a href="{% url 'expense_list' %}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

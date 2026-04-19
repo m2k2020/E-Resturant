@@ -1,0 +1,117 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Dashboard - EhantiPOS{% endblock %}
+{% block page_title %}{% t "Dashboard" %}{% endblock %}
+{% block page_subtitle %}{% t "Welcome back! Here's what's happening today." %}{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6 sm:mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Orders" %}</p>
+        <p class="text-lg sm:text-2xl font-bold text-gray-800 mt-1">{{ today_orders_count }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Revenue" %}</p>
+        <p class="text-lg sm:text-2xl font-bold text-green-600 mt-1">{{ currency }}{{ today_revenue|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Expenses" %}</p>
+        <p class="text-lg sm:text-2xl font-bold text-red-600 mt-1">{{ currency }}{{ today_expenses|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border-2 {% if today_profit >= 0 %}border-green-200{% else %}border-red-200{% endif %}">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Profit" %}</p>
+        <p class="text-lg sm:text-2xl font-bold {% if today_profit >= 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">{{ currency }}{{ today_profit|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Active" %}</p>
+        <p class="text-lg sm:text-2xl font-bold text-blue-600 mt-1">{{ active_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Tables</p>
+        <p class="text-lg sm:text-2xl font-bold text-purple-600 mt-1">{{ available_tables }}<span class="text-sm text-gray-400">/{{ total_tables }}</span></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Low Stock" %}</p>
+        <p class="text-lg sm:text-2xl font-bold {% if low_stock_count > 0 %}text-red-600{% else %}text-gray-800{% endif %} mt-1">{{ low_stock_count }}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+    <!-- Recent Orders -->
+    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800">{% t "Recent Orders" %}</h3>
+            <a href="{% url 'order_list' %}" class="text-sm text-indigo-600 hover:text-indigo-800">{% t "View all" %}</a>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for order in recent_orders %}
+            <a href="{% url 'order_detail' order.pk %}" class="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-gray-800">#{{ order.id }}</span>
+                    <span class="text-sm text-gray-500">Table {{ order.table.number|default:"N/A" }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-semibold">{{ currency }}{{ order.total_amount|floatformat:2 }}</span>
+                    <span class="px-2 py-0.5 text-xs rounded-full font-medium
+                        {% if order.status == 'pending' %}bg-yellow-100 text-yellow-700
+                        {% elif order.status == 'preparing' %}bg-blue-100 text-blue-700
+                        {% elif order.status == 'served' %}bg-purple-100 text-purple-700
+                        {% elif order.status == 'paid' %}bg-green-100 text-green-700
+                        {% else %}bg-red-100 text-red-700{% endif %}">
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="px-6 py-8 text-center text-gray-400 text-sm">{% t "No orders yet." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="space-y-6">
+        <!-- Popular Items -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800">{% t "Popular Items Today" %}</h3>
+            </div>
+            <div class="p-4">
+                {% for item in popular_items %}
+                <div class="flex items-center justify-between py-2 px-2">
+                    <span class="text-sm text-gray-700">{{ item.menu_item__name|default:"Unknown" }}</span>
+                    <span class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium">{{ item.total_qty }} sold</span>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-400 text-sm py-4">{% t "No sales data yet." %}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800">{% t "Quick Actions" %}</h3>
+            </div>
+            <div class="p-4 grid grid-cols-2 gap-2">
+                <a href="{% url 'order_create' %}" class="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition text-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="text-xs font-medium text-indigo-700">{% t "New Order" %}</span>
+                </a>
+                <a href="{% url 'kitchen_display' %}" class="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-orange-50 hover:bg-blue-100 transition text-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    <span class="text-xs font-medium text-blue-700">{% t "Kitchen" %}</span>
+                </a>
+                <a href="{% url 'sales_report' %}" class="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition text-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <span class="text-xs font-medium text-green-700">{% t "Reports" %}</span>
+                </a>
+                <a href="{% url 'ingredient_list' %}?low_stock=1" class="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition text-center">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                    <span class="text-xs font-medium text-red-700">{% t "Low Stock" %}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

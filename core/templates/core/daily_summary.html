@@ -1,0 +1,96 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Daily Summary - EhantiPOS{% endblock %}
+{% block page_title %}{% t "Daily Summary" %}{% endblock %}
+{% block page_subtitle %}{% t "End-of-day overview" %}{% endblock %}
+
+{% block content %}
+<!-- Date Picker -->
+<div class="mb-6">
+    <form method="get" class="flex items-center gap-3">
+        <label class="text-sm font-medium text-gray-700">Date:</label>
+        <input type="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Orders" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-gray-800 mt-1">{{ total_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Paid" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ paid_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Cancelled" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-red-600 mt-1">{{ cancelled_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Revenue" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ currency }}{{ total_revenue|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Expenses" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-red-600 mt-1">{{ currency }}{{ total_expenses|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-2 {% if profit >= 0 %}border-green-200{% else %}border-red-200{% endif %}">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">{% t "Profit" %}</p>
+        <p class="text-xl sm:text-2xl font-bold {% if profit >= 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">{{ currency }}{{ profit|floatformat:2 }}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Order Status Breakdown -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-800">{% t "Order Status Breakdown" %}</h3>
+        </div>
+        <div class="p-6">
+            {% for item in status_breakdown %}
+            <div class="flex items-center justify-between py-2">
+                <span class="text-sm capitalize text-gray-700">{{ item.status }}</span>
+                <div class="flex items-center gap-3">
+                    <div class="w-32 bg-gray-100 rounded-full h-2">
+                        <div class="h-2 rounded-full {% if item.status == 'paid' %}bg-green-500{% elif item.status == 'cancelled' %}bg-red-500{% elif item.status == 'pending' %}bg-yellow-500{% else %}bg-blue-500{% endif %}"
+                            style="width: {% widthratio item.count total_orders 100 %}%"></div>
+                    </div>
+                    <span class="text-sm font-medium text-gray-800 w-8 text-right">{{ item.count }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-400 text-sm py-4">{% t "No orders for this date." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Day's Expenses -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-800">{% t "Expenses This Day" %}</h3>
+        <span class="text-sm font-semibold text-red-600">{{ currency }}{{ total_expenses|floatformat:2 }}</span>
+    </div>
+    <div class="divide-y divide-gray-50">
+        {% for expense in day_expenses %}
+        <div class="flex items-center justify-between px-6 py-3">
+            <div class="flex items-center gap-3">
+                <div class="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-800">{{ expense.title }}</p>
+                    <p class="text-xs text-gray-400">{{ expense.payment_method.name|default:"-" }} &middot; {{ expense.paid_by.user.get_full_name|default:"-" }}</p>
+                </div>
+            </div>
+            <span class="text-sm font-semibold text-red-600">-{{ currency }}{{ expense.amount|floatformat:2 }}</span>
+        </div>
+        {% empty %}
+        <div class="px-6 py-6 text-center text-gray-400 text-sm">{% t "No expenses for this date." %}</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

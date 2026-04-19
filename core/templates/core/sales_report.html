@@ -1,0 +1,114 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Sales Report - EhantiPOS{% endblock %}
+{% block page_title %}{% t "Sales Report" %}{% endblock %}
+{% block page_subtitle %}{% t "Analyze your restaurant's sales performance" %}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'export_sales' %}?period={{ period }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Export CSV" %}</a>
+{% endblock %}
+
+{% block content %}
+<!-- Period Tabs -->
+<div class="flex gap-2 mb-4 flex-wrap">
+    <a href="{% url 'sales_report' %}?period=today" class="px-4 py-2 rounded-lg text-sm font-medium {% if period == 'today' %}bg-indigo-600 text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:bg-gray-50{% endif %}">{% t "Today" %}</a>
+    <a href="{% url 'sales_report' %}?period=yesterday" class="px-4 py-2 rounded-lg text-sm font-medium {% if period == 'yesterday' %}bg-indigo-600 text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:bg-gray-50{% endif %}">{% t "Yesterday" %}</a>
+    <a href="{% url 'sales_report' %}?period=week" class="px-4 py-2 rounded-lg text-sm font-medium {% if period == 'week' %}bg-indigo-600 text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:bg-gray-50{% endif %}">{% t "Last 7 Days" %}</a>
+    <a href="{% url 'sales_report' %}?period=month" class="px-4 py-2 rounded-lg text-sm font-medium {% if period == 'month' %}bg-indigo-600 text-white{% else %}bg-white text-gray-700 border border-gray-200 hover:bg-gray-50{% endif %}">{% t "Last 30 Days" %}</a>
+</div>
+
+<!-- Date Filter -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+    <form method="get" class="flex flex-col sm:flex-row gap-3 items-end">
+        <div class="flex gap-2 items-center flex-1">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">{% t "From" %}</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <span class="text-gray-400 text-sm mt-5">to</span>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Filter" %}</button>
+            {% if period == 'custom' %}
+            <a href="{% url 'sales_report' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Clear" %}</a>
+            {% endif %}
+        </div>
+    </form>
+    {% if period == 'custom' %}
+    <p class="text-xs text-indigo-600 mt-2 font-medium">Showing custom date range: {{ date_from }} {% if date_to %}to {{ date_to }}{% endif %}</p>
+    {% endif %}
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">{% t "Revenue" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ currency }}{{ total_revenue|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">{% t "Expenses" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-red-600 mt-1">{{ currency }}{{ total_expenses|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-2 {% if profit >= 0 %}border-green-200{% else %}border-red-200{% endif %}">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">{% t "Profit" %}</p>
+        <p class="text-xl sm:text-2xl font-bold {% if profit >= 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">{{ currency }}{{ profit|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">{% t "Orders" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-gray-800 mt-1">{{ total_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100">
+        <p class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">{% t "Avg Order" %}</p>
+        <p class="text-xl sm:text-2xl font-bold text-indigo-600 mt-1">{{ currency }}{{ avg_order|floatformat:2 }}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Top Items -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-800">{% t "Top Selling Items" %}</h3>
+        </div>
+        <div class="p-4">
+            {% for item in top_items %}
+            <div class="flex items-center justify-between py-2.5 px-2">
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 bg-indigo-100 text-indigo-700 text-xs rounded-full flex items-center justify-center font-bold">{{ forloop.counter }}</span>
+                    <span class="text-sm font-medium text-gray-800">{{ item.menu_item__name|default:"Unknown" }}</span>
+                </div>
+                <span class="text-sm text-gray-500">{{ item.total_qty }} sold</span>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-400 text-sm py-6">{% t "No sales data for this period." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Paid Orders -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-800">{% t "Paid Orders" %}</h3>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for order in orders %}
+            <a href="{% url 'order_detail' order.pk %}" class="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors">
+                <div>
+                    <span class="text-sm font-medium text-gray-800">#{{ order.id }}</span>
+                    <span class="text-xs text-gray-500 ml-2">{% if order.order_type == 'dine_in' %}Table {{ order.table.number|default:"N/A" }}{% else %}{{ order.customer_name|default:"Walk-in" }}{% endif %}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-semibold text-green-600">{{ currency }}{{ order.total_amount|floatformat:2 }}</span>
+                    <span class="text-xs text-gray-400">{{ order.created_at|date:"M d, H:i" }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="px-6 py-6 text-center text-gray-400 text-sm">{% t "No paid orders in this period." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

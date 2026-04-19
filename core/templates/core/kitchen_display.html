@@ -1,0 +1,185 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Kitchen Display - EhantiPOS{% endblock %}
+{% block page_title %}{% t "Kitchen Display" %}{% endblock %}
+{% block page_subtitle %}{% t "Live orders for the kitchen" %}{% endblock %}
+
+{% block page_actions %}
+<a href="{{ request.path }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Refresh" %}</a>
+{% endblock %}
+
+{% block content %}
+<!-- Order Counts -->
+<div class="flex gap-3 mb-5 flex-wrap">
+    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200">
+        <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+        <span class="text-sm font-medium text-gray-700">Pending: <span class="font-bold text-yellow-600">{{ pending_count }}</span></span>
+    </div>
+    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200">
+        <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+        <span class="text-sm font-medium text-gray-700">Preparing: <span class="font-bold text-blue-600">{{ preparing_count }}</span></span>
+    </div>
+    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200">
+        <span class="text-sm font-medium text-gray-700">Total: <span class="font-bold">{{ total_count }}</span></span>
+    </div>
+</div>
+
+<!-- Orders Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="ordersGrid">
+    {% for order in orders %}
+    <div class="bg-white rounded-xl shadow-sm border-2 overflow-hidden
+        {% if order.status == 'pending' %}border-yellow-300{% else %}border-blue-300{% endif %}"
+        data-created="{{ order.created_at|date:'c' }}">
+
+        <!-- Header -->
+        <div class="px-4 py-3 flex items-center justify-between
+            {% if order.status == 'pending' %}bg-yellow-50{% else %}bg-blue-50{% endif %}">
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-black">#{{ order.id }}</span>
+                <span class="px-2 py-0.5 text-[10px] rounded-full font-semibold
+                    {% if order.order_type == 'dine_in' %}bg-blue-100 text-blue-700
+                    {% elif order.order_type == 'takeaway' %}bg-amber-100 text-amber-700
+                    {% else %}bg-violet-100 text-violet-700{% endif %}">
+                    {{ order.get_order_type_display }}
+                </span>
+            </div>
+            <span class="px-2.5 py-1 text-xs rounded-full font-bold
+                {% if order.status == 'pending' %}bg-yellow-200 text-yellow-800{% else %}bg-blue-200 text-blue-800{% endif %}">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+
+        <!-- Customer / Table Info -->
+        <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+            <div class="text-sm text-gray-600">
+                {% if order.order_type == 'dine_in' %}
+                <span class="font-semibold">Table {{ order.table.number|default:"?" }}</span>
+                {% elif order.order_type == 'takeaway' %}
+                <span class="font-semibold">{{ order.customer_name|default:"Walk-in" }}</span>
+                {% else %}
+                <span class="font-semibold">{{ order.customer_name|default:"Delivery" }}</span>
+                {% if order.customer_phone %}<span class="text-xs text-gray-400 ml-1">{{ order.customer_phone }}</span>{% endif %}
+                {% endif %}
+            </div>
+            <!-- Timer -->
+            <span class="timer text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600" data-created="{{ order.created_at|date:'c' }}">--:--</span>
+        </div>
+
+        <!-- Items -->
+        <div class="p-4">
+            <div class="space-y-2 mb-3">
+                {% for item in order.items.all %}
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-800">{{ item.menu_item.name|default:"Item" }}</span>
+                    <span class="bg-gray-800 text-white px-2.5 py-0.5 rounded-lg text-sm font-bold min-w-[32px] text-center">{{ item.quantity }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Notes -->
+            {% if order.notes %}
+            <div class="text-xs text-orange-700 bg-orange-50 border border-orange-200 p-2.5 rounded-lg mb-3 flex items-start gap-2">
+                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>{{ order.notes }}</span>
+            </div>
+            {% endif %}
+
+            {% if order.staff %}
+            <div class="text-xs text-gray-400 mb-3">Staff: {{ order.staff.user.get_full_name }}</div>
+            {% endif %}
+
+            <!-- Actions -->
+            {% if order.status == 'pending' %}
+            <a href="{% url 'kitchen_update_status' order.pk 'preparing' %}" class="block w-full text-center px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-bold">
+                Start Preparing
+            </a>
+            {% elif order.status == 'preparing' %}
+            <a href="{% url 'kitchen_update_status' order.pk 'served' %}" class="block w-full text-center px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-bold">
+                Ready / Served
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-16">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <h3 class="text-lg font-medium text-gray-500">{% t "All caught up!" %}</h3>
+        <p class="text-sm text-gray-400 mt-1">No active orders in the kitchen right now.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Live timer for each order
+function updateTimers() {
+    document.querySelectorAll('.timer').forEach(el => {
+        const created = new Date(el.dataset.created);
+        const now = new Date();
+        const diff = Math.floor((now - created) / 1000);
+        const mins = Math.floor(diff / 60);
+        const secs = diff % 60;
+
+        if (mins >= 30) {
+            el.textContent = mins + ':' + String(secs).padStart(2, '0');
+            el.className = 'timer text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-red-100 text-red-700 animate-pulse';
+        } else if (mins >= 15) {
+            el.textContent = mins + ':' + String(secs).padStart(2, '0');
+            el.className = 'timer text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-orange-100 text-orange-700';
+        } else {
+            el.textContent = mins + ':' + String(secs).padStart(2, '0');
+            el.className = 'timer text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600';
+        }
+    });
+}
+updateTimers();
+setInterval(updateTimers, 1000);
+
+// Sound alert for new orders
+let lastOrderCount = {{ total_count }};
+
+function checkNewOrders() {
+    fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newGrid = doc.getElementById('ordersGrid');
+            const newCount = newGrid ? newGrid.children.length : 0;
+
+            if (newCount > lastOrderCount && lastOrderCount > 0) {
+                playAlert();
+            }
+            lastOrderCount = newCount;
+
+            // Update the page content
+            const currentGrid = document.getElementById('ordersGrid');
+            if (newGrid && currentGrid) {
+                currentGrid.innerHTML = newGrid.innerHTML;
+                updateTimers();
+            }
+        })
+        .catch(() => {});
+}
+
+function playAlert() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Play 3 short beeps
+        [0, 0.2, 0.4].forEach(delay => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            gain.gain.value = 0.3;
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + 0.15);
+        });
+    } catch(e) {}
+}
+
+// Auto-refresh every 10 seconds
+setInterval(checkNewOrders, 10000);
+</script>
+{% endblock %}

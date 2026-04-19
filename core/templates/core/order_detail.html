@@ -1,0 +1,266 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Order #{{ order.id }} - EhantiPOS{% endblock %}
+{% block page_title %}Order #{{ order.id }}{% endblock %}
+
+{% block page_actions %}
+<span class="px-2.5 py-1 text-xs rounded-full font-medium
+    {% if order.order_type == 'dine_in' %}bg-blue-100 text-blue-700
+    {% elif order.order_type == 'takeaway' %}bg-amber-100 text-amber-700
+    {% else %}bg-violet-100 text-violet-700{% endif %}">
+    {{ order.get_order_type_display }}
+</span>
+<span class="px-2.5 py-1 text-xs rounded-full font-medium
+    {% if order.status == 'pending' %}bg-yellow-100 text-yellow-700
+    {% elif order.status == 'preparing' %}bg-blue-100 text-blue-700
+    {% elif order.status == 'served' %}bg-purple-100 text-purple-700
+    {% elif order.status == 'paid' %}bg-green-100 text-green-700
+    {% else %}bg-red-100 text-red-700{% endif %}">
+    {{ order.get_status_display }}
+</span>
+{% if order.status == 'paid' %}
+<a href="{% url 'order_receipt' order.pk %}" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">{% t "Print Receipt" %}</a>
+{% endif %}
+{% if can_edit %}
+<a href="{% url 'order_edit' order.pk %}" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">{% t "Edit Info" %}</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'order_list' %}" class="text-sm text-indigo-600 hover:text-indigo-800">{% t "Back to Orders" %}</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+    <!-- LEFT: Order Info + Menu (if editable) -->
+    <div class="lg:col-span-2 space-y-4">
+        <!-- Order Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div>
+                    <p class="text-gray-400 text-[10px] sm:text-xs uppercase">{% t "Order Type" %}</p>
+                    <p class="font-medium text-gray-800 text-sm">{{ order.get_order_type_display }}</p>
+                </div>
+                <div>
+                    {% if order.order_type == 'dine_in' %}
+                    <p class="text-gray-400 text-[10px] sm:text-xs uppercase">Table</p>
+                    <p class="font-medium text-gray-800 text-sm">Table {{ order.table.number|default:"N/A" }}</p>
+                    {% else %}
+                    <p class="text-gray-400 text-[10px] sm:text-xs uppercase">{% t "Customer" %}</p>
+                    <p class="font-medium text-gray-800 text-sm">{{ order.customer_name|default:"Walk-in" }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-gray-400 text-[10px] sm:text-xs uppercase">{% if order.order_type == 'delivery' %}Phone{% else %}Staff{% endif %}</p>
+                    <p class="font-medium text-gray-800 text-sm">{% if order.order_type == 'delivery' %}{{ order.customer_phone|default:"-" }}{% else %}{{ order.staff.user.get_full_name|default:"-" }}{% endif %}</p>
+                </div>
+                <div>
+                    <p class="text-gray-400 text-[10px] sm:text-xs uppercase">{% t "Time" %}</p>
+                    <p class="font-medium text-gray-800 text-sm">{{ order.created_at|date:"M d, H:i" }}</p>
+                </div>
+            </div>
+            {% if order.order_type == 'delivery' and order.delivery_address %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+                <p class="text-[10px] sm:text-xs text-gray-400 uppercase">Delivery Address</p>
+                <p class="text-sm text-gray-800">{{ order.delivery_address }}</p>
+            </div>
+            {% endif %}
+            {% if order.notes %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+                <p class="text-[10px] sm:text-xs text-gray-400 uppercase">Notes</p>
+                <p class="text-sm text-gray-800">{{ order.notes }}</p>
+            </div>
+            {% endif %}
+            {% if can_edit %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+                <a href="{% url 'order_edit' order.pk %}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{% t "Edit Order Info" %}</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Menu Grid (only when order is editable) -->
+        {% if can_edit %}
+        <div class="space-y-3">
+            <h3 class="font-semibold text-gray-800 text-sm">{% t "Add Items to Order" %}</h3>
+            <div class="flex gap-1.5 flex-wrap">
+                <button type="button" onclick="filterCategory('all')" class="cat-btn active px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white" data-cat="all">{% t "All" %}</button>
+                {% for cat in categories %}
+                <button type="button" onclick="filterCategory('{{ cat.pk }}')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50" data-cat="{{ cat.pk }}">{{ cat.name }}</button>
+                {% endfor %}
+            </div>
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
+                {% for item in menu_items %}
+                <form method="post" class="menu-item" data-category="{{ item.category.pk }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+                    <button type="submit" class="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden text-left hover:shadow-md hover:border-blue-200 transition-all">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-16 sm:h-20 object-cover">
+                        {% else %}
+                        <div class="w-full h-16 sm:h-20 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        </div>
+                        {% endif %}
+                        <div class="p-2">
+                            <p class="text-xs font-semibold text-gray-800 truncate">{{ item.name }}</p>
+                            <p class="text-xs font-bold text-green-600 mt-0.5">{{ currency }}{{ item.price }}</p>
+                        </div>
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT: Order Items + Actions -->
+    <div class="space-y-4">
+        <!-- Current Order Items -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 text-sm">{% t "Order Items" %}</h3>
+                <span class="text-xs text-gray-400">{{ order.items.count }} items</span>
+            </div>
+            <div class="divide-y divide-gray-50 max-h-96 overflow-y-auto">
+                {% for item in order.items.all %}
+                <div class="px-4 py-3 flex items-center justify-between">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-800 truncate">{{ item.menu_item.name|default:"Deleted Item" }}</p>
+                        <p class="text-xs text-gray-400">{{ currency }}{{ item.price|floatformat:2 }} each</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 ml-3">
+                        {% if can_edit %}
+                        <a href="{% url 'order_item_update_qty' order.pk item.pk 'decrease' %}" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition">-</a>
+                        {% endif %}
+                        <span class="w-6 text-center text-sm font-semibold">{{ item.quantity }}</span>
+                        {% if can_edit %}
+                        <a href="{% url 'order_item_update_qty' order.pk item.pk 'increase' %}" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition">+</a>
+                        <a href="{% url 'order_remove_item' order.pk item.pk %}" class="w-7 h-7 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-600 flex items-center justify-center transition ml-0.5" title="Remove">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </a>
+                        {% endif %}
+                        <span class="text-sm font-semibold text-gray-700 w-16 text-right">{{ currency }}{{ item.subtotal|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="px-4 py-8 text-center text-gray-300">
+                    <p class="text-sm">{% t "No items yet" %}</p>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- Totals -->
+            <div class="bg-gray-50 border-t border-gray-100 px-4 py-3 space-y-1.5">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>{% t "Subtotal" %}</span>
+                    <span>{{ currency }}{{ order.subtotal|floatformat:2 }}</span>
+                </div>
+                {% if order.discount_amount %}
+                <div class="flex justify-between text-sm text-red-600">
+                    <span>Discount {% if order.discount_type == 'percent' %}({{ order.discount_value }}%){% endif %}</span>
+                    <span>-{{ currency }}{{ order.discount_amount|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+                {% if order.tax_amount %}
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Tax ({{ order.tax_rate }}%)</span>
+                    <span>+{{ currency }}{{ order.tax_amount|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between pt-1.5 border-t border-gray-200">
+                    <span class="font-semibold text-gray-800">{% t "Total" %}</span>
+                    <span class="text-xl font-bold text-green-600">{{ currency }}{{ order.total_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+            {% if order.status == 'paid' and order.payment_method %}
+            <div class="px-4 py-2 bg-green-50 border-t border-green-100 text-center">
+                <span class="text-xs font-medium text-green-700">Paid via {{ order.payment_method_name }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Discount -->
+        {% if can_edit %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <h3 class="font-semibold text-gray-800 text-sm mb-3">{% t "Discount" %}</h3>
+            <form method="post" action="{% url 'order_update_discount' order.pk %}" class="space-y-2">
+                {% csrf_token %}
+                <div class="flex gap-2">
+                    <select name="discount_type" class="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="none" {% if order.discount_type == 'none' %}selected{% endif %}>No Discount</option>
+                        <option value="percent" {% if order.discount_type == 'percent' %}selected{% endif %}>Percentage %</option>
+                        <option value="fixed" {% if order.discount_type == 'fixed' %}selected{% endif %}>Fixed Amount</option>
+                    </select>
+                    <input type="number" name="discount_value" value="{{ order.discount_value }}" min="0" step="0.01" class="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0">
+                </div>
+                <button type="submit" class="w-full px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">{% t "Apply Discount" %}</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Status Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <h3 class="font-semibold text-gray-800 text-sm mb-3">{% t "Update Status" %}</h3>
+            <div class="space-y-2">
+                {% if order.status == 'pending' %}
+                <a href="{% url 'order_update_status' order.pk 'preparing' %}" class="block w-full text-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">{% t "Start Preparing" %}</a>
+                <button onclick="document.getElementById('cancelModal').classList.remove('hidden')" type="button" class="block w-full text-center px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium">{% t "Cancel Order" %}</button>
+                {% elif order.status == 'preparing' %}
+                <a href="{% url 'order_update_status' order.pk 'served' %}" class="block w-full text-center px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">{% t "Mark as Served" %}</a>
+                <a href="{% url 'order_update_status' order.pk 'pending' %}" class="block w-full text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Back to Pending" %}</a>
+                <button onclick="document.getElementById('cancelModal').classList.remove('hidden')" type="button" class="block w-full text-center px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium">{% t "Cancel Order" %}</button>
+                {% elif order.status == 'served' %}
+                <a href="{% url 'order_update_status' order.pk 'paid' %}" class="block w-full text-center px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">{% t "Mark as Paid" %}</a>
+                <a href="{% url 'order_update_status' order.pk 'preparing' %}" class="block w-full text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Back to Preparing" %}</a>
+                {% elif order.status == 'paid' %}
+                <a href="{% url 'order_receipt' order.pk %}" class="block w-full text-center px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "View / Print Receipt" %}</a>
+                <p class="text-xs text-gray-400 text-center mt-1">Paid via {{ order.payment_method_name }}</p>
+                {% else %}
+                <p class="text-sm text-gray-400 text-center py-2">Order is {{ order.get_status_display|lower }}.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+{% if can_edit %}
+<div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4 w-full">
+        <div class="text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Cancel Order #{{ order.id }}?</h3>
+            <p class="text-sm text-gray-500 mb-6">This will cancel the order and restore all ingredient stock. This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('cancelModal').classList.add('hidden')" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "No, Keep It" %}</button>
+                <form method="post" action="{% url 'order_update_status' order.pk 'cancelled' %}" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium">{% t "Yes, Cancel" %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if can_edit %}
+<script>
+function filterCategory(catId) {
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.dataset.cat === catId) {
+            btn.className = 'cat-btn active px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white';
+        } else {
+            btn.className = 'cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50';
+        }
+    });
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.style.display = (catId === 'all' || item.dataset.category === catId) ? '' : 'none';
+    });
+}
+document.getElementById('cancelModal')?.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Expenses - EhantiPOS{% endblock %}
+{% block page_title %}{% t "Expenses" %}{% endblock %}
+{% block page_subtitle %}{% t "Track all expenses and payment method balances" %}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'export_expenses' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Export CSV" %}</a>
+<a href="{% url 'expense_create' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">+ {% t "Add Expense" %}</a>
+<a href="{% url 'expense_category_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Categories" %}</a>
+{% endblock %}
+
+{% block page_actions_mobile %}
+<a href="{% url 'expense_create' %}" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium">+ Add</a>
+<a href="{% url 'expense_category_list' %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium">{% t "Categories" %}</a>
+{% endblock %}
+
+{% block content %}
+<!-- Payment Method Balances -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-{{ payment_methods|length }} gap-3 sm:gap-4 mb-6">
+    {% for pm in payment_methods %}
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center
+                {% if pm.color == 'green' %}bg-green-100{% elif pm.color == 'blue' %}bg-blue-100{% elif pm.color == 'purple' %}bg-purple-100{% elif pm.color == 'orange' %}bg-orange-100{% elif pm.color == 'red' %}bg-red-100{% elif pm.color == 'teal' %}bg-teal-100{% else %}bg-gray-100{% endif %}">
+                {% if pm.icon == 'cash' %}
+                <svg class="w-4 h-4 {% if pm.color == 'green' %}text-green-600{% elif pm.color == 'blue' %}text-blue-600{% elif pm.color == 'purple' %}text-purple-600{% elif pm.color == 'orange' %}text-orange-600{% else %}text-gray-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                {% elif pm.icon == 'card' %}
+                <svg class="w-4 h-4 {% if pm.color == 'blue' %}text-blue-600{% else %}text-gray-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                {% elif pm.icon == 'mobile' %}
+                <svg class="w-4 h-4 {% if pm.color == 'purple' %}text-purple-600{% else %}text-gray-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                {% else %}
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                {% endif %}
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">{{ pm.name }}</p>
+                <p class="text-lg font-bold {% if pm.balance >= 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ currency }}{{ pm.balance|floatformat:2 }}</p>
+            </div>
+        </div>
+        <div class="flex justify-between text-[10px] text-gray-400">
+            <span>In: {{ currency }}{{ pm.total_income|floatformat:2 }}</span>
+            <span>Out: {{ currency }}{{ pm.total_expenses|floatformat:2 }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- My Expenses -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                <span class="text-indigo-600 font-bold text-xs">{{ request.user.first_name|first|default:"A" }}</span>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-800 text-sm">{% t "My Expenses" %}</h3>
+                <p class="text-xs text-gray-400">{% t "Expenses you recorded" %}</p>
+            </div>
+        </div>
+        <span class="text-sm font-bold text-red-600">{{ currency }}{{ my_total|floatformat:2 }}</span>
+    </div>
+    {% if my_expenses %}
+    <div class="divide-y divide-gray-50">
+        {% for expense in my_expenses %}
+        <div class="flex items-center justify-between px-5 py-3">
+            <div>
+                <p class="text-sm font-medium text-gray-800">{{ expense.title }}</p>
+                <p class="text-xs text-gray-400">{{ expense.date|date:"M d" }} &middot; {{ expense.payment_method.name|default:"-" }}{% if expense.category %} &middot; {{ expense.category.name }}{% endif %}</p>
+            </div>
+            <span class="text-sm font-semibold text-red-600">-{{ currency }}{{ expense.amount|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-5 py-6 text-center text-gray-400 text-sm">{% t "You haven't recorded any expenses yet." %}</div>
+    {% endif %}
+</div>
+
+<!-- Search & Filter -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+    <form method="get" class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search expenses..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        </div>
+        <select name="category" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">{% t "All Categories" %}</option>
+            {% for cat in categories %}
+            <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"d" %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+        <div class="flex gap-2 items-center">
+            <input type="date" name="date_from" value="{{ date_from }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <span class="text-gray-400 text-sm">to</span>
+            <input type="date" name="date_to" value="{{ date_to }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Filter" %}</button>
+        {% if search or selected_category or date_from or date_to %}
+        <a href="{% url 'expense_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium text-center">{% t "Clear" %}</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Total -->
+<div class="flex items-center justify-between mb-2">
+    <p class="text-sm text-gray-500">
+        Showing {{ expenses.start_index }}-{{ expenses.end_index }} of {{ expenses.paginator.count }} expenses
+    </p>
+    <p class="text-sm font-semibold text-red-600">Total: {{ currency }}{{ total_expenses|floatformat:2 }}</p>
+</div>
+
+<!-- Expense Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+    <table class="w-full min-w-[700px]">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Date" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Expense" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Category" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Amount" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Paid From" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Paid By" %}</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{% t "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for expense in expenses %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm text-gray-500">{{ expense.date|date:"M d, Y" }}</td>
+                <td class="px-6 py-4">
+                    <p class="text-sm font-medium text-gray-800">{{ expense.title }}</p>
+                    {% if expense.notes %}<p class="text-xs text-gray-400 truncate max-w-xs">{{ expense.notes }}</p>{% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    {% if expense.category %}
+                    <span class="px-2 py-0.5 text-xs rounded-full font-medium bg-gray-100 text-gray-700">{{ expense.category.name }}</span>
+                    {% else %}<span class="text-xs text-gray-400">-</span>{% endif %}
+                </td>
+                <td class="px-6 py-4 text-sm font-semibold text-red-600">-{{ currency }}{{ expense.amount|floatformat:2 }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ expense.payment_method.name|default:"-" }}</td>
+                <td class="px-6 py-4">
+                    {% if expense.paid_by %}
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span class="text-indigo-600 font-bold text-[10px]">{{ expense.paid_by.user.first_name|first }}</span>
+                        </div>
+                        <span class="text-sm text-gray-700">{{ expense.paid_by.user.get_full_name }}</span>
+                    </div>
+                    {% else %}<span class="text-xs text-gray-400">-</span>{% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex gap-2">
+                        <a href="{% url 'expense_edit' expense.pk %}" class="text-indigo-600 hover:text-indigo-800 text-sm">{% t "Edit" %}</a>
+                        <a href="{% url 'expense_delete' expense.pk %}" class="text-red-500 hover:text-red-700 text-sm">{% t "Delete" %}</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">{% t "No expenses recorded yet." %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if expenses.has_other_pages %}
+<div class="flex items-center justify-center mt-6 gap-1">
+    {% if expenses.has_previous %}
+    <a href="?page={{ expenses.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50">{% t "Prev" %}</a>
+    {% endif %}
+    {% for num in expenses.paginator.page_range %}
+        {% if expenses.number == num %}
+        <span class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm">{{ num }}</span>
+        {% elif num > expenses.number|add:'-3' and num < expenses.number|add:'3' %}
+        <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if expenses.has_next %}
+    <a href="?page={{ expenses.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50">{% t "Next" %}</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

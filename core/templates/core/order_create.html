@@ -1,0 +1,263 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}New Order - EhantiPOS{% endblock %}
+{% block page_title %}{% t "New Order" %}{% endblock %}
+{% block page_subtitle %}Select order type, pick items, and place the order{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'order_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="orderForm">
+    {% csrf_token %}
+    <input type="hidden" name="cart_items" id="cartItemsInput" value="[]">
+
+    <!-- Mobile: Order type + cart toggle -->
+    <div class="lg:hidden flex gap-2 mb-3">
+        <button type="button" onclick="document.getElementById('mobileCart').classList.toggle('hidden')" class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+            Cart (<span id="mobileCartCount">0</span>) &middot; <span id="mobileCartTotal">{{ currency }}0.00</span>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+
+        <!-- ═══ LEFT: Menu Items ═══ -->
+        <div class="lg:col-span-2 space-y-3">
+            <!-- Category Filter -->
+            <div class="flex gap-1.5 flex-wrap">
+                <button type="button" onclick="filterCategory('all')" class="cat-btn active px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white" data-cat="all">{% t "All" %}</button>
+                {% for cat in categories %}
+                <button type="button" onclick="filterCategory('{{ cat.pk }}')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50" data-cat="{{ cat.pk }}">{{ cat.name }}</button>
+                {% endfor %}
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3" id="menuGrid">
+                {% for item in menu_items %}
+                <div class="menu-item bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-200 transition-all"
+                     data-id="{{ item.pk }}"
+                     data-name="{{ item.name }}"
+                     data-price="{{ item.price }}"
+                     data-category="{{ item.category.pk }}"
+                     onclick="addToCart({{ item.pk }}, '{{ item.name|escapejs }}', {{ item.price }})">
+                    {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-16 sm:h-20 object-cover">
+                    {% else %}
+                    <div class="w-full h-16 sm:h-20 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    </div>
+                    {% endif %}
+                    <div class="p-2">
+                        <h4 class="text-xs font-semibold text-gray-800 truncate">{{ item.name }}</h4>
+                        <p class="text-[10px] text-gray-400 hidden sm:block">{{ item.category.name }}</p>
+                        <p class="text-xs font-bold text-green-600 mt-0.5">{{ currency }}{{ item.price }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-12 text-gray-400">
+                    No menu items available. Add items in the Menu module first.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══ RIGHT: Order Details + Cart ═══ -->
+        <div id="mobileCart" class="space-y-4">
+            <!-- Order Type Tabs -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="font-semibold text-gray-800 mb-3">{% t "Order Type" %}</h3>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <button type="button" onclick="setOrderType('dine_in')" id="tab_dine_in"
+                        class="order-type-tab flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                        <span class="text-xs font-semibold">{% t "Dine-In" %}</span>
+                    </button>
+                    <button type="button" onclick="setOrderType('takeaway')" id="tab_takeaway"
+                        class="order-type-tab flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:border-gray-300 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                        <span class="text-xs font-semibold">{% t "Takeaway" %}</span>
+                    </button>
+                    <button type="button" onclick="setOrderType('delivery')" id="tab_delivery"
+                        class="order-type-tab flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:border-gray-300 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                        <span class="text-xs font-semibold">{% t "Delivery" %}</span>
+                    </button>
+                </div>
+
+                {{ form.order_type.as_hidden }}
+
+                <!-- Dine-In: Table -->
+                <div id="field_table" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Table *</label>
+                        {{ form.table }}
+                    </div>
+                </div>
+
+                <!-- Takeaway/Delivery: Customer Info -->
+                <div id="field_customer" class="space-y-3" style="display:none;">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Customer Name</label>
+                        {{ form.customer_name }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">{% t "Phone" %}</label>
+                        {{ form.customer_phone }}
+                    </div>
+                </div>
+
+                <!-- Delivery: Address -->
+                <div id="field_address" class="space-y-3 mt-3" style="display:none;">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Delivery Address *</label>
+                        {{ form.delivery_address }}
+                    </div>
+                </div>
+
+                <!-- Common fields -->
+                <div class="space-y-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Staff</label>
+                        {{ form.staff }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800">{% t "Order Items" %}</h3>
+                    <span class="text-xs text-gray-400" id="cartCount">0 items</span>
+                </div>
+                <div id="cartItems" class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                    <div id="emptyCart" class="px-5 py-8 text-center text-gray-300">
+                        <svg class="w-10 h-10 mx-auto mb-2 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                        <p class="text-sm">{% t "Click items to add" %}</p>
+                    </div>
+                </div>
+                <!-- Total -->
+                <div class="px-5 py-4 bg-gray-50 border-t border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="font-semibold text-gray-800">{% t "Total" %}</span>
+                        <span class="text-xl font-bold text-green-600" id="cartTotal">{{ currency }}0.00</span>
+                    </div>
+                    <button type="submit" id="submitBtn" disabled
+                        class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-40 disabled:cursor-not-allowed text-sm">
+                        Place Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let cart = {};
+let currentType = 'dine_in';
+const currencySymbol = '{{ currency }}';
+
+function setOrderType(type) {
+    currentType = type;
+    document.getElementById('id_order_type').value = type;
+
+    // Update tabs
+    document.querySelectorAll('.order-type-tab').forEach(tab => {
+        tab.className = 'order-type-tab flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:border-gray-300 transition';
+    });
+    const active = document.getElementById('tab_' + type);
+    active.className = 'order-type-tab flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 transition';
+
+    // Show/hide fields
+    document.getElementById('field_table').style.display = type === 'dine_in' ? '' : 'none';
+    document.getElementById('field_customer').style.display = type !== 'dine_in' ? '' : 'none';
+    document.getElementById('field_address').style.display = type === 'delivery' ? '' : 'none';
+}
+
+function addToCart(id, name, price) {
+    if (cart[id]) {
+        cart[id].qty += 1;
+    } else {
+        cart[id] = { id, name, price: parseFloat(price), qty: 1 };
+    }
+    renderCart();
+}
+
+function removeFromCart(id) {
+    delete cart[id];
+    renderCart();
+}
+
+function changeQty(id, delta) {
+    if (cart[id]) {
+        cart[id].qty += delta;
+        if (cart[id].qty <= 0) delete cart[id];
+    }
+    renderCart();
+}
+
+function renderCart() {
+    const container = document.getElementById('cartItems');
+    const items = Object.values(cart);
+    const emptyMsg = document.getElementById('emptyCart');
+
+    container.querySelectorAll('.cart-row').forEach(el => el.remove());
+
+    if (items.length === 0) {
+        emptyMsg.style.display = 'block';
+    } else {
+        emptyMsg.style.display = 'none';
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'cart-row flex items-center justify-between px-5 py-3 hover:bg-gray-50';
+            row.innerHTML = `
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">${item.name}</p>
+                    <p class="text-xs text-gray-400">${currencySymbol}${item.price.toFixed(2)} each</p>
+                </div>
+                <div class="flex items-center gap-2 ml-3">
+                    <button type="button" onclick="changeQty(${item.id}, -1)" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition">-</button>
+                    <span class="w-6 text-center text-sm font-semibold">${item.qty}</span>
+                    <button type="button" onclick="changeQty(${item.id}, 1)" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition">+</button>
+                    <button type="button" onclick="removeFromCart(${item.id})" class="w-7 h-7 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-600 flex items-center justify-center transition ml-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    const total = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
+    document.getElementById('cartTotal').textContent = currencySymbol + total.toFixed(2);
+    document.getElementById('cartCount').textContent = totalItems + ' item' + (totalItems !== 1 ? 's' : '');
+    document.getElementById('cartItemsInput').value = JSON.stringify(items);
+    document.getElementById('submitBtn').disabled = items.length === 0;
+
+    // Update mobile cart button
+    const mc = document.getElementById('mobileCartCount');
+    const mt = document.getElementById('mobileCartTotal');
+    if (mc) mc.textContent = totalItems;
+    if (mt) mt.textContent = currencySymbol + total.toFixed(2);
+}
+
+function filterCategory(catId) {
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.dataset.cat === catId) {
+            btn.className = 'cat-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white';
+        } else {
+            btn.className = 'cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50';
+        }
+    });
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.style.display = (catId === 'all' || item.dataset.category === catId) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

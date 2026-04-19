@@ -1,0 +1,84 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}Settings - EhantiPOS{% endblock %}
+{% block page_title %}{% t "General Settings" %}{% endblock %}
+{% block page_subtitle %}{% t "Configure your restaurant information" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Restaurant Name" %}</label>
+                    {{ form.restaurant_name }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Address" %}</label>
+                    {{ form.address }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Phone" %}</label>
+                    {{ form.phone }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Email" %}</label>
+                    {{ form.email }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Tax Rate (%)" %}</label>
+                    {{ form.tax_rate }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Currency Symbol" %}</label>
+                    {{ form.currency_symbol }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Opening Time" %}</label>
+                    {{ form.opening_time }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Closing Time" %}</label>
+                    {{ form.closing_time }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{% t "Logo" %}</label>
+                    {{ form.logo }}
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-100">
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Save Settings" %}</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payment Methods Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="font-semibold text-gray-800">{% t "Payment Methods" %}</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Configure accepted payment methods for orders</p>
+            </div>
+            <a href="{% url 'payment_method_list' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Manage" %}</a>
+        </div>
+        <p class="text-sm text-gray-500">Add, edit, or remove payment methods that appear when processing payments. These will show up on the payment screen when marking orders as paid.</p>
+    </div>
+
+    <!-- Roles & Permissions Section -->
+    {% if 'roles' in user_perms %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="font-semibold text-gray-800">{% t "Roles & Permissions" %}</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Control what each staff role can see and do</p>
+            </div>
+            <a href="{% url 'role_list' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Manage" %}</a>
+        </div>
+        <p class="text-sm text-gray-500">Create roles (Manager, Waiter, Chef, etc.) and assign module permissions using checkboxes. Staff members with a role will only see their allowed modules.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

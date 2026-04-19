@@ -1,0 +1,158 @@
+{% extends 'core/base_home.html' %}
+{% load translate %}
+
+{% block content %}
+<!-- Welcome -->
+<div class="text-center mb-6 sm:mb-10">
+    <h1 class="text-xl sm:text-3xl font-bold text-gray-800">{% t "Welcome back" %}, <span class="text-blue-600">{{ request.user.get_full_name|default:request.user.username }}</span></h1>
+    <p class="text-gray-400 mt-1 text-xs sm:text-sm">{{ request.user.username }}</p>
+</div>
+
+<!-- Installed Modules -->
+<div class="mb-3 sm:mb-4">
+    <h2 class="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-widest">{% t "Installed Modules" %}</h2>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-5 max-w-4xl mx-auto">
+
+    {% if 'dashboard' in user_perms %}
+    <a href="{% url 'dashboard' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Dashboard" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Overview & analytics" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'orders' in user_perms %}
+    <a href="{% url 'order_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Orders" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Manage orders" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'menu' in user_perms %}
+    <a href="{% url 'menu_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-purple-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Menu" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Menu Items" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'menu' in user_perms %}
+    <a href="{% url 'category_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-cyan-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Categories" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Organize products" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'tables' in user_perms %}
+    <a href="{% url 'table_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Tables" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Table management" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'kitchen' in user_perms %}
+    <a href="{% url 'kitchen_display' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-red-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Kitchen" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Kitchen Display" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'inventory' in user_perms %}
+    <a href="{% url 'ingredient_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-emerald-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Inventory" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Stock management" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'expenses' in user_perms %}
+    <a href="{% url 'expense_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-rose-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Expenses" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Track spending" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'reports' in user_perms %}
+    <a href="{% url 'sales_report' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Reports" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Reports" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'staff' in user_perms %}
+    <a href="{% url 'staff_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-violet-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Staff" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Staff accounts" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'roles' in user_perms %}
+    <a href="{% url 'role_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-amber-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Roles" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Permissions" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'logs' in user_perms %}
+    <a href="{% url 'log_list' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-slate-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Logs" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Audit & errors" %}</p>
+    </a>
+    {% endif %}
+
+    {% if 'settings' in user_perms %}
+    <a href="{% url 'settings_general' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-gray-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Settings" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "System config" %}</p>
+    </a>
+    {% endif %}
+
+    <!-- Profile - always visible -->
+    <a href="{% url 'profile_settings' %}" class="module-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-5 text-center group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-pink-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-[11px] sm:text-sm">{% t "Profile" %}</h3>
+        <p class="text-[9px] sm:text-xs text-gray-400 mt-0.5 hidden sm:block">{% t "Profile" %}</p>
+    </a>
+
+</div>
+{% endblock %}

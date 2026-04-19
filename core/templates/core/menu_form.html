@@ -1,0 +1,153 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}{{ title }} - EhantiPOS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="mb-4">
+        <a href="{% url 'menu_list' %}" class="text-sm text-indigo-600 hover:text-indigo-800">{% t "Back to Menu" %}</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="menuForm">
+        {% csrf_token %}
+        <input type="hidden" name="ingredient_links" id="ingredientLinksInput" value="[]">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left: Menu Item Info -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">{% t "Item Details" %}</h3>
+                <div class="space-y-4">
+                    {% for field in form %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<p class="text-red-500 text-sm mt-1">{{ field.errors.0 }}</p>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right: Linked Ingredients -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-800">{% t "Linked Ingredients" %}</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">{% t "Stock auto-deducts when this item is sold" %}</p>
+                </div>
+
+                {% if ingredients %}
+                <!-- Add ingredient row -->
+                <div class="flex gap-2 mb-4">
+                    <select id="newIngredient" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">{% t "Select ingredient..." %}</option>
+                        {% for ing in ingredients %}
+                        <option value="{{ ing.pk }}" data-name="{{ ing.name }}" data-unit="{{ ing.get_unit_display }}">{{ ing.name }} ({{ ing.quantity }} {{ ing.get_unit_display }})</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" id="newQty" value="1" min="0.01" step="0.01" class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Qty">
+                    <button type="button" onclick="addIngredientLink()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Add</button>
+                </div>
+
+                <!-- Linked list -->
+                <div id="linkedIngredients" class="space-y-2">
+                    <div id="emptyLinks" class="text-center py-6 text-gray-300">
+                        <svg class="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        <p class="text-sm">{% t "No ingredients linked yet" %}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-400">
+                    <p class="text-sm">No ingredients in inventory yet.</p>
+                    <a href="{% url 'ingredient_create' %}" class="text-blue-600 text-sm hover:text-blue-800">Add ingredients first</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Save" %}</button>
+            <a href="{% url 'menu_list' %}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+        </div>
+    </form>
+</div>
+
+<script>
+let ingredientLinks = [];
+
+// Load existing links on edit
+{% if existing_links %}
+    ingredientLinks = [
+        {% for link in existing_links %}
+        {
+            ingredient_id: {{ link.ingredient_id }},
+            quantity_used: {{ link.quantity_used }},
+            name: document.querySelector('#newIngredient option[value="{{ link.ingredient_id }}"]')?.dataset.name || 'Unknown',
+            unit: document.querySelector('#newIngredient option[value="{{ link.ingredient_id }}"]')?.dataset.unit || '',
+        },
+        {% endfor %}
+    ];
+    renderLinks();
+{% endif %}
+
+function addIngredientLink() {
+    const select = document.getElementById('newIngredient');
+    const qtyInput = document.getElementById('newQty');
+    const id = parseInt(select.value);
+    const qty = parseFloat(qtyInput.value);
+    if (!id || !qty || qty <= 0) return;
+
+    if (ingredientLinks.find(l => l.ingredient_id === id)) {
+        alert('This ingredient is already linked.');
+        return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    ingredientLinks.push({
+        ingredient_id: id,
+        quantity_used: qty,
+        name: option.dataset.name,
+        unit: option.dataset.unit,
+    });
+
+    select.value = '';
+    qtyInput.value = '1';
+    renderLinks();
+}
+
+function removeLink(index) {
+    ingredientLinks.splice(index, 1);
+    renderLinks();
+}
+
+function renderLinks() {
+    const container = document.getElementById('linkedIngredients');
+    const empty = document.getElementById('emptyLinks');
+
+    container.querySelectorAll('.link-row').forEach(el => el.remove());
+
+    if (ingredientLinks.length === 0) {
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        ingredientLinks.forEach((link, i) => {
+            const row = document.createElement('div');
+            row.className = 'link-row flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2.5';
+            row.innerHTML = `
+                <div>
+                    <span class="text-sm font-medium text-gray-800">${link.name}</span>
+                    <span class="text-xs text-gray-400 ml-2">${link.quantity_used} ${link.unit} per sale</span>
+                </div>
+                <button type="button" onclick="removeLink(${i})" class="text-red-400 hover:text-red-600 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    document.getElementById('ingredientLinksInput').value = JSON.stringify(
+        ingredientLinks.map(l => ({ ingredient_id: l.ingredient_id, quantity_used: l.quantity_used }))
+    );
+}
+</script>
+{% endblock %}

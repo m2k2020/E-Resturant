@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% load translate %}
+{% block title %}{{ title }} - EhantiPOS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+                {{ form.name }}
+            </div>
+            <div class="flex items-center gap-2">
+                {{ form.is_active }}
+                <label class="text-sm font-medium text-gray-700">{% t "Active" %}</label>
+            </div>
+            <div class="pt-4 border-t border-gray-100 flex gap-3">
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{% t "Save" %}</button>
+                <a href="{% url 'expense_category_list' %}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">{% t "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

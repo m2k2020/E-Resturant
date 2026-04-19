@@ -1,0 +1,134 @@
+{% load translate %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt - Order #{{ order.id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Courier New', monospace; }
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 0; }
+            .receipt { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-8">
+
+    <!-- Action Buttons -->
+    <div class="no-print mb-4 flex gap-3">
+        <button onclick="window.print()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Print Receipt
+        </button>
+        <a href="{% url 'order_detail' order.pk %}" class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium">{% t "Back to Order" %}</a>
+    </div>
+
+    <!-- Receipt -->
+    <div class="receipt bg-white shadow-lg rounded-lg max-w-sm w-full mx-4 p-6">
+        <!-- Header -->
+        <div class="text-center mb-4 pb-4 border-b-2 border-dashed border-gray-300">
+            {% if settings.logo %}
+            <img src="{{ settings.logo.url }}" alt="{{ settings.restaurant_name }}" class="h-16 mx-auto mb-2 object-contain">
+            {% endif %}
+            <h1 class="text-xl font-bold">{{ settings.restaurant_name }}</h1>
+            {% if settings.address %}<p class="text-xs text-gray-600 mt-1">{{ settings.address }}</p>{% endif %}
+            {% if settings.phone %}<p class="text-xs text-gray-600">Tel: {{ settings.phone }}</p>{% endif %}
+            {% if settings.email %}<p class="text-xs text-gray-600">{{ settings.email }}</p>{% endif %}
+        </div>
+
+        <!-- Order Info -->
+        <div class="mb-4 pb-4 border-b border-dashed border-gray-300 text-xs">
+            <div class="flex justify-between mb-1">
+                <span>Order #:</span>
+                <span class="font-bold">{{ order.id }}</span>
+            </div>
+            <div class="flex justify-between mb-1">
+                <span>Date:</span>
+                <span>{{ order.created_at|date:"M d, Y  H:i" }}</span>
+            </div>
+            <div class="flex justify-between mb-1">
+                <span>Type:</span>
+                <span>{{ order.get_order_type_display }}</span>
+            </div>
+            {% if order.order_type == 'dine_in' and order.table %}
+            <div class="flex justify-between mb-1">
+                <span>Table:</span>
+                <span>{{ order.table.number }}</span>
+            </div>
+            {% endif %}
+            {% if order.customer_name %}
+            <div class="flex justify-between mb-1">
+                <span>Customer:</span>
+                <span>{{ order.customer_name }}</span>
+            </div>
+            {% endif %}
+            {% if order.staff %}
+            <div class="flex justify-between mb-1">
+                <span>Staff:</span>
+                <span>{{ order.staff.user.get_full_name }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Items -->
+        <div class="mb-4 pb-4 border-b border-dashed border-gray-300">
+            <div class="flex justify-between text-xs font-bold mb-2 uppercase">
+                <span class="flex-1">Item</span>
+                <span class="w-8 text-center">Qty</span>
+                <span class="w-16 text-right">Price</span>
+                <span class="w-16 text-right">{% t "Total" %}</span>
+            </div>
+            {% for item in order.items.all %}
+            <div class="flex justify-between text-xs mb-1.5">
+                <span class="flex-1 truncate pr-2">{{ item.menu_item.name|default:"Item" }}</span>
+                <span class="w-8 text-center">{{ item.quantity }}</span>
+                <span class="w-16 text-right">{{ settings.currency_symbol }}{{ item.price|floatformat:2 }}</span>
+                <span class="w-16 text-right">{{ settings.currency_symbol }}{{ item.subtotal|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Totals -->
+        <div class="mb-4 pb-4 border-b-2 border-dashed border-gray-300 text-xs space-y-1">
+            <div class="flex justify-between">
+                <span>Subtotal:</span>
+                <span>{{ settings.currency_symbol }}{{ order.subtotal|floatformat:2 }}</span>
+            </div>
+            {% if order.discount_amount %}
+            <div class="flex justify-between text-red-600">
+                <span>Discount{% if order.discount_type == 'percent' %} ({{ order.discount_value }}%){% endif %}:</span>
+                <span>-{{ settings.currency_symbol }}{{ order.discount_amount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            {% if order.tax_amount %}
+            <div class="flex justify-between">
+                <span>Tax ({{ order.tax_rate }}%):</span>
+                <span>+{{ settings.currency_symbol }}{{ order.tax_amount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between text-base font-bold pt-2">
+                <span>TOTAL:</span>
+                <span>{{ settings.currency_symbol }}{{ order.total_amount|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Payment -->
+        {% if order.status == 'paid' %}
+        <div class="text-center text-xs mb-4 pb-4 border-b border-dashed border-gray-300">
+            <p class="font-bold">PAID</p>
+            <p>Method: {{ order.payment_method_name }}</p>
+            <p>{{ order.updated_at|date:"M d, Y  H:i" }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="text-center text-xs text-gray-500">
+            <p class="font-medium">{% t "Thank you for your visit!" %}</p>
+            <p class="mt-1">{{ settings.restaurant_name }}</p>
+        </div>
+    </div>
+</body>
+</html>

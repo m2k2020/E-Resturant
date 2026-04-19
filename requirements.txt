@@ -1,0 +1,8 @@
+asgiref==3.11.1
+Django==6.0.4
+django-storages==1.14.6
+dotenv==0.9.9
+pillow==12.2.0
+python-dotenv==1.2.2
+sqlparse==0.5.5
+tzdata==2026.1
